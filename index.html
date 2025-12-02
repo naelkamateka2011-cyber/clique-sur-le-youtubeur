@@ -388,9 +388,19 @@ async function fetchLeaderboard(){
     const q = query(scoresCol, orderBy('score','desc'), limit(10));
     const snap = await getDocs(q);
     const rows = [];
-    snap.forEach(doc=> rows.push({ id: doc.id, ...doc.data() }) );
-    if(rows.length === 0) el('leaderList').innerHTML = '<div class="small'>Aucun score</div>';
-    else{
+    snap.forEach(doc => {
+    const data = doc.data();
+    rows.push({
+        id: doc.id,
+        name: data.name || "Anonyme",
+        score: data.score || 0
+    });
+});
+
+if (rows.length === 0) {
+    el('leaderList').innerHTML = '<div class="small">Aucun score</div>';
+} else {
+
       el('leaderList').innerHTML = '';
       rows.forEach((r,i)=>{
         const div = document.createElement('div');
