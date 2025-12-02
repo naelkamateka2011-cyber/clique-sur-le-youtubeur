@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Clique Sur Un Youtubeur - Pseudo Unique</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+:root{--accent:#00eaff;--accent2:#ff8c00}
+body{margin:0;font-family:Inter, Arial, sans-serif;background:linear-gradient(180deg,#071028,#050814);color:#e6eef6;display:flex;justify-content:center;padding:28px}
+.container{width:980px;max-width:98%}
+.header{display:flex;align-items:center;justify-content:space-between}
+h1{color:var(--accent);margin:0 0 8px 0}
+.card{background:rgba(10,12,20,0.75);padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.6);margin-top:14px}
+#clickButton{background:linear-gradient(180deg,var(--accent2),#ff7a00);border-radius:14px;padding:10px;border:none;cursor:pointer}
+#clickButton img{width:160px;display:block;transition:transform .12s}
+.small{font-size:13px;color:#afc6d9}
+.stats{display:flex;gap:18px;margin-top:12px}
+.section{margin-top:14px}
+.btn{background:linear-gradient(180deg,var(--accent2),#ff7a00);border:none;padding:8px 12px;border-radius:8px;color:#fff;cursor:pointer;font-weight:700}
+.btn.secondary{background:linear-gradient(180deg,#4b5563,#39434b)}
+.input{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+.leaderboardModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:999;width:90%;max-width:560px;display:none;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+.leaderboardModal.show{display:block}
+.leaderboardList{max-height:320px;overflow:auto;margin-top:10px}
+.row{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.floating{position:fixed;font-weight:800;color:var(--accent);pointer-events:none;animation:floatUp 0.7s ease-out forwards;z-index:1200}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+.particle{position:fixed;width:6px;height:6px;border-radius:50%;animation:explode .6s ease-out forwards;z-index:1100}
+@keyframes explode{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+/* Start modal */
+#startModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:1000;width:90%;max-width:420px;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+.hidden{display:none}
+.note{font-size:13px;color:#9fb3c9;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="container" id="mainContent" aria-hidden="true" style="visibility:hidden">
+  <div class="header">
+    <div>
+      <h1>Clique sur un youtubeur</h1>
+      <div class="small">Leaderboard global activé (Firebase)</div>
+    </div>
+    <div>
+      <button id="codesBtn" class="btn secondary">Codes</button>
+      <button id="leaderBtn" class="btn">Leaderboard</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="text-align:center">
+      <h2>Clics : <span id="compteurDisplay">0</span></h2>
+      <div style="margin:12px 0">
+        <button id="goBonusShop" class="btn secondary">Boutique Bonus</button>
+      </div>
+      <div style="display:inline-block;position:relative">
+        <button id="clickButton"><img id="clickImg" src="awyen.png" alt="skin"></button>
+      </div>
+
+      <div class="stats">
+        <div><div class="small">Multiplicateur</div><div id="multDisplay">1</div></div>
+        <div><div class="small">Renaissances</div><div id="renaiss">0</div></div>
+        <div><div class="small">Auto-Clicker</div><div id="autoStatus">Non acheté</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Skins</h3>
+      <select id="skinSelect" class="input"></select><br><br>
+      <button id="changeSkin" class="btn secondary">Changer</button>
+      <hr>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        <button class="buySkin btn" data-skin="fuze.png" data-price="1000">Fuze (1000)</button>
+        <button class="buySkin btn" data-skin="unchained.png" data-price="2000">Unchained (2000)</button>
+        <button class="buySkin btn" data-skin="beone.png" data-price="3000">BeOne (3000)</button>
+        <button class="buySkin btn" data-skin="mafiastunt.png" data-price="4000">MafiaStunt (4000)</button>
+        <button class="buySkin btn" data-skin="neverdie.png" data-price="3000">NeverDie (3000)</button>
+      </div>
+    </div>
+
+    <div class="section" id="bonusSection">
+      <h3>Bonus</h3>
+      <button id="buyAuto" data-price="2000" class="btn">Auto-Clicker (2000)</button>
+      <button id="buyBonusX2" data-price="300" class="btn secondary">Bonus x2 (300)</button>
+      <button id="buyBonusX3" data-price="500" class="btn secondary">Bonus x3 (500)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Infos</h3>
+    <div class="small">Auto-Clicker : <span id="autoInfo">Non acheté</span></div>
+    <div class="small">Bonus x2 : <span id="bX2">0</span></div>
+    <div class="small">Bonus x3 : <span id="bX3">0</span></div>
+  </div>
+</div>
+
+<!-- Start modal for pseudo -->
+<div id="startModal">
+  <h3>Bienvenue — Choisis ton pseudo</h3>
+  <input id="startName" class="input" placeholder="Ton pseudo (4-20 caractères, pas d'espaces au début/fin)">
+  <div style="margin-top:8px;display:flex;gap:8px">
+    <button id="startBtn" class="btn">Commencer</button>
+    <button id="guestBtn" class="btn secondary">Jouer en invité</button>
+  </div>
+  <div class="note">Le pseudo doit être unique : si quelqu'un l'utilise déjà, choisis-en un autre.</div>
+  <div class="note">Le pseudo sera lié à ton score public.</div>
+</div>
+
+<!-- Codes modal -->
+<div id="codesModal" class="leaderboardModal" aria-hidden="true">
+  <h3>Entrer un code</h3>
+  <input id="codeInput" class="input" placeholder="Entrez un code (ex: ACCESTOTALE25)">
+  <div style="margin-top:8px">
+    <button id="useCode" class="btn">Valider</button>
+    <button id="closeCodes" class="btn secondary">Fermer</button>
+  </div>
+  <div class="small" style="margin-top:8px">Le code admin <strong>ACCESTOTALE25</strong> donnera l'accès total aux codes.</div>
+</div>
+
+<!-- Leaderboard modal -->
+<div id="leaderModal" class="leaderboardModal" aria-hidden="true">
+  <h3>Leaderboard - Top 10</h3>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <input id="playerName" class="input" placeholder="Ton pseudo (max 20 chars)">
+    <button id="sendScore" class="btn">Envoyer score</button>
+  </div>
+  <div class="leaderboardList" id="leaderList"></div>
+  <div style="margin-top:8px">
+    <button id="refreshLb" class="btn secondary">Rafraîchir</button>
+    <button id="closeLb" class="btn secondary">Fermer</button>
+  </div>
+  <div class="small" style="margin-top:8px">Les scores sont publics. Ne partage pas d'informations personnelles.</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+// Firebase config (provided)
+const firebaseConfig = {
+  apiKey: "AIzaSyCOQ3HbHP-CjfXKNQELajrdP1iVJbFOYbk",
+  authDomain: "clique-sur-un-ur.firebaseapp.com",
+  projectId: "clique-sur-un-ur",
+  storageBucket: "clique-sur-un-ur.firebasestorage.app",
+  messagingSenderId: "700637528898",
+  appId: "1:700637528898:web:8a663a47a59d7f38027edb",
+  measurementId: "G-ZHGP5X8907"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const scoresCol = collection(db, "scores");
+
+// Game state
+let compteur = 0;
+let skins = ["awyen.png"];
+let currentSkin = "awyen.png";
+let bonusX2 = 0, bonusX3 = 0;
+let autoClicker = false;
+let renaissances = 0;
+
+const el = id => document.getElementById(id);
+const colors = ["#ff0048","#00eaff","#7aff00","#ff9a00","#c300ff"];
+
+// UI helpers
+function totalMult(){ return (1 + renaissances + bonusX2*2 + bonusX3*3); }
+function updateUI(){
+  if(el('compteurDisplay')) el('compteurDisplay').textContent = compteur;
+  if(el('multDisplay')) el('multDisplay').textContent = totalMult();
+  if(el('renaiss')) el('renaiss').textContent = renaissances;
+  if(el('autoStatus')) el('autoStatus').textContent = autoClicker? "Activé":"Non acheté";
+  if(el('autoInfo')) el('autoInfo').textContent = autoClicker? "Activé":"Non acheté";
+  if(el('bX2')) el('bX2').textContent = bonusX2;
+  if(el('bX3')) el('bX3').textContent = bonusX3;
+  if(el('clickImg')) el('clickImg').src = currentSkin;
+  let sel = el('skinSelect');
+  if(sel){
+    sel.innerHTML = "";
+    skins.forEach(s=>{
+      let o = document.createElement('option'); o.value=s; o.textContent = s.replace('.png',''); sel.appendChild(o);
+    });
+  }
+}
+
+// Animations
+function spawnFloating(x,y,value){
+  const n = document.createElement('div');
+  n.className = 'floating';
+  n.textContent = '+'+value;
+  n.style.left = (x)+'px';
+  n.style.top = (y)+'px';
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),700);
+}
+function spawnParticles(x,y){
+  for(let i=0;i<10;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    const angle = Math.random()*Math.PI*2;
+    const dist = 40 + Math.random()*40;
+    p.style.setProperty('--dx', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angle)*dist + 'px');
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),700);
+  }
+}
+
+// Persistence keys
+const STORAGE_NAME_KEY = 'csuy_playerName';
+const STORAGE_SCORE_KEY_PREFIX = 'csuy_score_';
+
+// Start modal logic with uniqueness check
+async function isNameTaken(name){
+  if(!name) return false;
+  try{
+    // check in scores collection for any doc with same name
+    const q = query(scoresCol, where('name','==', name), limit(1));
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }catch(e){
+    console.error('check name error', e);
+    return false; // allow if error
+  }
+}
+
+function showMain(){
+  document.getElementById('mainContent').style.visibility = 'visible';
+  document.getElementById('startModal').classList.add('hidden');
+  document.getElementById('mainContent').removeAttribute('aria-hidden');
+}
+
+function loadSavedScoreFor(name){
+  if(!name) return 0;
+  const v = localStorage.getItem(STORAGE_SCORE_KEY_PREFIX + name);
+  return v ? parseInt(v,10)||0 : 0;
+}
+
+function saveScoreFor(name, score){
+  if(!name) return;
+  localStorage.setItem(STORAGE_SCORE_KEY_PREFIX + name, String(score));
+}
+
+// Start button handlers
+el('startBtn')?.addEventListener('click', async ()=>{
+  let name = (el('startName')?.value || '').trim();
+  if(name.length < 4 || name.length > 20){ alert('Pseudo entre 4 et 20 caractères'); return; }
+  // normalize (no leading/trailing spaces)
+  name = name.replace(/\\s+/g,' ');
+  // check uniqueness
+  const taken = await isNameTaken(name);
+  if(taken){ alert('Ce pseudo est déjà utilisé. Choisissez-en un autre.'); return; }
+  // store name and restore score
+  localStorage.setItem(STORAGE_NAME_KEY, name);
+  compteur = loadSavedScoreFor(name) || 0;
+  el('playerName') && (el('playerName').value = name);
+  showMain();
+  updateUI();
+});
+
+// Guest button - allow playing but cannot claim unique pseudo (guest name)
+el('guestBtn')?.addEventListener('click', ()=>{
+  const guest = 'Guest_' + Math.floor(Math.random()*10000);
+  localStorage.setItem(STORAGE_NAME_KEY, guest);
+  compteur = 0;
+  el('playerName') && (el('playerName').value = guest);
+  showMain();
+  updateUI();
+});
+
+// Save on unload
+window.addEventListener('beforeunload', ()=>{
+  const name = localStorage.getItem(STORAGE_NAME_KEY);
+  if(name){
+    try{ saveScoreFor(name, compteur); }catch(e){ console.error(e); }
+  }
+});
+
+// Click handling and game wiring (same as before)
+document.addEventListener('DOMContentLoaded', ()=>{
+  // wire click
+  const clickBtn = el('clickButton');
+  const img = el('clickImg');
+  if(clickBtn){
+    clickBtn.addEventListener('click', (ev)=>{
+      const mult = totalMult();
+      compteur += mult;
+      updateUI();
+      if(img){ img.style.transform = 'scale(1.1)'; setTimeout(()=> img.style.transform = '',120); }
+      const rect = img.getBoundingClientRect();
+      spawnFloating(rect.left + rect.width/2, rect.top, mult);
+      spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2);
+    });
+  }
+
+  // shop buttons
+  document.querySelectorAll('.buySkin').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const skin = btn.dataset.skin;
+      const price = parseInt(btn.dataset.price);
+      if(skins.includes(skin)) return alert('Déjà acheté !');
+      if(compteur < price) return alert('Pas assez !');
+      compteur -= price; skins.push(skin); alert('Skin débloqué !'); updateUI();
+    });
+  });
+  el('changeSkin')?.addEventListener('click', ()=>{ const s=el('skinSelect'); if(s) currentSkin=s.value; updateUI(); });
+  el('buyAuto')?.addEventListener('click', ()=>{ const cost = parseInt(el('buyAuto').dataset.price||'2000'); if(autoClicker) return alert('Déjà acheté !'); if(compteur<cost) return alert('Pas assez !'); compteur -= cost; autoClicker=true; alert('Auto-clicker activé !'); updateUI(); });
+  el('buyBonusX2')?.addEventListener('click', ()=>{ if(compteur<300) return alert('Pas assez !'); compteur-=300; bonusX2++; updateUI(); });
+  el('buyBonusX3')?.addEventListener('click', ()=>{ if(compteur<500) return alert('Pas assez !'); compteur-=500; bonusX3++; updateUI(); });
+
+  setInterval(()=>{ if(autoClicker){ compteur += totalMult(); updateUI(); } },2000);
+
+  // codes modal
+  const codesBtn = el('codesBtn'), codesModal = el('codesModal'), useCode = el('useCode'), closeCodes = el('closeCodes');
+  codesBtn?.addEventListener('click', ()=>{ codesModal.classList.add('show'); });
+  closeCodes?.addEventListener('click', ()=>{ codesModal.classList.remove('show'); });
+  useCode?.addEventListener('click', ()=>{
+    const val = (el('codeInput')?.value||'').trim().toUpperCase();
+    if(!val) return alert('Entrez un code.');
+    if(val === 'ACCESTOTALE25'){
+      compteur += 999999;
+      autoClicker = true;
+      bonusX2 += 10;
+      bonusX3 += 10;
+      ['awyen.png','fuze.png','unchained.png','beone.png','mafiastunt.png','neverdie.png','polo.png','troll.png','mystere.png','lasalle.png'].forEach(s=>{ if(!skins.includes(s)) skins.push(s); });
+      alert('Accès total accordé !'); updateUI(); codesModal.classList.remove('show'); return;
+    }
+    const map = {'CLICK500': ()=>{ compteur+=500; alert('+500 clics'); }, 'CLICK1000': ()=>{ compteur+=1000; alert('+1000 clics'); }, 'MULTI3': ()=>{ bonusX3+=1; alert('Bonus x3 obtenu'); }};
+    if(map[val]){ map[val](); updateUI(); codesModal.classList.remove('show'); return; }
+    alert('Code invalide.');
+  });
+
+  // leaderboard modal
+  const leaderBtn = el('leaderBtn'), leaderModal = el('leaderModal'), closeLb = el('closeLb'), refreshLb = el('refreshLb');
+  leaderBtn?.addEventListener('click', ()=>{ leaderModal.classList.add('show'); fetchLeaderboard(); });
+  closeLb?.addEventListener('click', ()=>{ leaderModal.classList.remove('show'); });
+  refreshLb?.addEventListener('click', ()=>{ fetchLeaderboard(); });
+
+  el('sendScore')?.addEventListener('click', ()=>{ const name = el('playerName')?.value || localStorage.getItem(STORAGE_NAME_KEY) || 'Anonyme'; sendScoreToFirestore(name, compteur); });
+
+  // If user already has a saved name, auto-start
+  const savedName = localStorage.getItem(STORAGE_NAME_KEY);
+  if(savedName){
+    // restore saved score
+    compteur = loadSavedScoreFor(savedName) || 0;
+    el('playerName') && (el('playerName').value = savedName);
+    el('startName') && (el('startName').value = savedName);
+    showMain();
+    updateUI();
+  }
+  // initial UI
+  updateUI();
+});
+
+// Firestore functions
+async function sendScoreToFirestore(name, score){
+  try{
+    if(typeof score !== 'number' || !isFinite(score) || score < 0) throw 'Score invalide';
+    const capped = Math.min(score, 99999999);
+    const cleanName = (name || 'Anonyme').toString().slice(0,20);
+    const last = parseInt(localStorage.getItem('lastSubmit') || '0',10);
+    const now = Date.now();
+    if(now - last < 5000) throw 'Attendez quelques secondes avant de renvoyer.';
+    await addDoc(scoresCol, { name: cleanName, score: capped, createdAt: serverTimestamp() });
+    localStorage.setItem('lastSubmit', String(now));
+    alert('Score envoyé !');
+    fetchLeaderboard();
+  }catch(err){
+    alert('Envoi échoué: ' + (err.message || err));
+    console.error(err);
+  }
+}
+
+async function fetchLeaderboard(){
+  try{
+    el('leaderList').innerHTML = '<div class="small">Chargement...</div>';
+    const q = query(scoresCol, orderBy('score','desc'), limit(10));
+    const snap = await getDocs(q);
+    const rows = [];
+    snap.forEach(doc=> rows.push({ id: doc.id, ...doc.data() }) );
+    if(rows.length === 0) el('leaderList').innerHTML = '<div class="small">Aucun score</div>';
+    else{
+      el('leaderList').innerHTML = '';
+      rows.forEach((r,i)=>{
+        const div = document.createElement('div');
+        div.className = 'row';
+        div.innerHTML = `<div>#${i+1} ${r.name || 'Anonyme'}</div><div>${r.score || 0}</div>`;
+        el('leaderList').appendChild(div);
+      });
+    }
+  }catch(err){
+    el('leaderList').innerHTML = '<div class="small">Erreur lors du chargement</div>';
+    console.error(err);
+  }
+}
+</script>
+</body>
+</html>
