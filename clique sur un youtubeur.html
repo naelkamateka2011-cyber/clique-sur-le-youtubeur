@@ -1,0 +1,622 @@
+<!-- PARTIE 1/4 -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Clique Sur Un Youtubeur — Final (partie 1)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+:root{--accent:#00eaff;--accent2:#ff8c00}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0}
+body{
+  background: radial-gradient(ellipse at top left, rgba(0,30,60,0.9), rgba(5,8,15,1) 60%);
+  color:#e6eef6;
+  font-family:Inter, system-ui, Arial;
+  overflow-x:hidden;
+}
+#overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:900;display:block}
+#startModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:1000;width:90%;max-width:420px;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+.hidden{display:none}
+.note{font-size:13px;color:#9fb3c9;margin-top:8px}
+.disabledCover{position:fixed;left:0;top:0;right:0;bottom:0;z-index:800;background:transparent;pointer-events:auto}
+
+/* Layout */
+.container{max-width:980px;margin:40px auto;display:grid;grid-template-columns:1fr 340px;gap:18px;position:relative;z-index:2;padding:18px}
+.card{background: rgba(10,12,20,0.85); padding:18px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.6); backdrop-filter: blur(6px) saturate(120%);}
+h1{color:var(--accent); margin:0}
+button{cursor:pointer;border:none;padding:8px 12px;border-radius:8px;background:linear-gradient(180deg,var(--accent2),#ff7a00);color:white;font-weight:700;}
+button.secondary{background:linear-gradient(180deg,#4b5563,#39434b)}
+.section{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;margin-top:14px;}
+#clickButton img{width:160px; display:block}
+.leaderboardModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:999;width:90%;max-width:560px;display:none;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+.leaderboardModal.show{display:block}
+.leaderboardList{max-height:320px;overflow:auto;margin-top:10px}
+.row{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.floating{position:fixed;font-weight:800;color:var(--accent);pointer-events:none;animation:floatUp 0.7s ease-out forwards;z-index:1200}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+.particle{position:fixed;width:6px;height:6px;border-radius:50%;animation:explode .6s ease-out forwards;z-index:1100}
+@keyframes explode{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+</style>
+</head>
+<body>
+<div id="overlay"></div>
+
+<!-- Start modal for pseudo -->
+<div id="startModal" role="dialog" aria-modal="true">
+  <h3>Bienvenue — Choisis ton pseudo</h3>
+  <input id="startName" class="input" placeholder="Ton pseudo (4-20 caractères)" style="width:100%;padding:8px;border-radius:8px;margin-top:8px;">
+  <div style="margin-top:8px;display:flex;gap:8px">
+    <button id="startBtn" class="btn">Commencer</button>
+    <button id="guestBtn" class="btn secondary">Jouer en invité</button>
+  </div>
+  <div class="note">Le pseudo doit être unique. Si un pseudo existe déjà, choisis-en un autre.</div>
+</div>
+
+<!-- Disabled cover (blocks interactions until allowed) -->
+<div id="disabledCover" class="disabledCover"></div>
+
+<!-- MAIN LAYOUT -->
+<div class="container" id="mainContent" aria-hidden="true" style="visibility:hidden;pointer-events:none;opacity:0.01">
+  <div class="card">
+    <div style="text-align:center;">
+      <h1>Clique sur un youtubeur</h1>
+      <button id="goBonusShop" class="secondary">Boutique Bonus</button><br><br>
+      <button id="clickButton"><img id="clickImg" src="awyen.png" alt="skin"></button>
+    </div>
+
+    <div class="section">
+      <h3>Skins</h3>
+      <select id="skinSelect"></select><br><br>
+      <button id="changeSkin">Changer</button>
+      <hr>
+      <button class="buySkin" data-skin="fuze.png" data-price="1000">Fuze (1000)</button><br><br>
+      <button class="buySkin" data-skin="unchained.png" data-price="2000">Unchained (2000)</button><br><br>
+      <button class="buySkin" data-skin="beone.png" data-price="3000">BeOne (3000)</button><br><br>
+      <button class="buySkin" data-skin="mafiastunt.png" data-price="4000">MafiaStunt (4000)</button><br><br>
+      <button class="buySkin" data-skin="neverdie.png" data-price="3000">NeverDie (3000)</button>
+    </div>
+
+    <div class="section" id="bonusSection">
+      <h3>Bonus</h3>
+      <button id="buyAuto" data-price="2000">Auto-Clicker (2000)</button><br><br>
+      <button id="buyBonusX2" data-price="300" class="secondary">Bonus x2 (300)</button><br><br>
+      <button id="buyBonusX3" data-price="500" class="secondary">Bonus x3 (500)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>Infos</h3>
+      <div>Auto-Clicker : <span id="autoStatus">Non acheté</span></div>
+      <div>Bonus x2 : <span id="bonusX2">0</span></div>
+      <div>Bonus x3 : <span id="bonusX3">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// ------------------ FIREBASE IMPORTS ------------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, query, where, limit, getDocs, addDoc, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+// ------------------ FIREBASE CONFIG ------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyCOQ3HbHP-CjfXKNQELajrdP1iVJbFOYbk",
+  authDomain: "clique-sur-un-ur.firebaseapp.com",
+  projectId: "clique-sur-un-ur",
+  storageBucket: "clique-sur-un-ur.firebasestorage.app",
+  messagingSenderId: "700637528898",
+  appId: "1:700637528898:web:8a663a47a59d7f38027edb",
+  measurementId: "G-ZHGP5X8907"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const scoresCol = collection(db, "scores");
+
+// ------------------ GAME STATE ------------------
+let compteur = 0;
+let skins = ["awyen.png"];
+let currentSkin = "awyen.png";
+let bonusX2 = 0, bonusX3 = 0;
+let autoClicker = false;
+let renaissances = 0;
+
+const el = id => document.getElementById(id);
+const colors = ["#ff0048","#00eaff","#7aff00","#ff9a00","#c300ff"];
+
+// ------------------ UI HELPERS ------------------
+function totalMult(){ return 1 + renaissances + bonusX2*2 + bonusX3*3; }
+
+function updateUI(){
+  if(el('compteurDisplay')) el('compteurDisplay').textContent = compteur;
+  if(el('multDisplay')) el('multDisplay').textContent = totalMult();
+  if(el('renaiss')) el('renaiss').textContent = renaissances;
+  if(el('autoStatus')) el('autoStatus').textContent = autoClicker? "Activé":"Non acheté";
+  if(el('autoInfo')) el('autoInfo').textContent = autoClicker? "Activé":"Non acheté";
+  if(el('bX2')) el('bX2').textContent = bonusX2;
+  if(el('bX3')) el('bX3').textContent = bonusX3;
+  if(el('clickImg')) el('clickImg').src = currentSkin;
+  let sel = el('skinSelect');
+  if(sel){
+    sel.innerHTML = "";
+    skins.forEach(s=>{
+      let o = document.createElement('option'); o.value=s; o.textContent = s.replace('.png',''); sel.appendChild(o);
+    });
+  }
+}
+
+// ------------------ ANIMATIONS ------------------
+function spawnFloating(x,y,value){
+  const n = document.createElement('div');
+  n.className = 'floating';
+  n.textContent = '+'+value;
+  n.style.left = (x)+'px';
+  n.style.top = (y)+'px';
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),700);
+}
+function spawnParticles(x,y){
+  for(let i=0;i<10;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    const angle = Math.random()*Math.PI*2;
+    const dist = 40 + Math.random()*40;
+    p.style.setProperty('--dx', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angle)*dist + 'px');
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),700);
+  }
+}
+
+// ------------------ PERSISTENCE ------------------
+const STORAGE_NAME_KEY = 'csuy_playerName';
+const STORAGE_SCORE_KEY_PREFIX = 'csuy_score_';
+
+// ------------------ START / NAME CHECK ------------------
+async function isNameTaken(name){
+  if(!name) return false;
+  try{
+    const q = query(scoresCol, where('name','==', name), limit(1));
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }catch(e){
+    console.error('check name error', e);
+    return false;
+  }
+}
+
+function showMain(){
+  document.getElementById('mainContent').style.visibility = 'visible';
+  document.getElementById('mainContent').style.pointerEvents = 'auto';
+  document.getElementById('mainContent').style.opacity = '1';
+  document.getElementById('disabledCover').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('startModal').classList.add('hidden');
+  document.getElementById('mainContent').removeAttribute('aria-hidden');
+}
+
+function loadSavedScoreFor(name){
+  if(!name) return 0;
+  const v = localStorage.getItem(STORAGE_SCORE_KEY_PREFIX + name);
+  return v ? parseInt(v,10)||0 : 0;
+}
+
+function saveScoreFor(name, score){
+  if(!name) return;
+  localStorage.setItem(STORAGE_SCORE_KEY_PREFIX + name, String(score));
+}
+
+// ---------- PARTIE 1/4 FIN ----------
+<!-- Disabled cover (blocks interactions until allowed) -->
+<div id="disabledCover" class="disabledCover"></div>
+
+<div class="container" id="mainContent" aria-hidden="true" style="visibility:hidden;pointer-events:none;opacity:0.01">
+  <div class="header">
+    <div>
+      <h1>Clique sur un youtubeur</h1>
+      <div class="small">Leaderboard global activé (Firebase)</div>
+    </div>
+    <div>
+      <button id="codesBtn" class="btn secondary">Codes</button>
+      <button id="leaderBtn" class="btn">Leaderboard</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="text-align:center">
+      <h2>Clics : <span id="compteurDisplay">0</span></h2>
+      <div style="margin:12px 0">
+        <button id="goBonusShop" class="btn secondary">Boutique Bonus</button>
+      </div>
+      <div style="display:inline-block;position:relative">
+        <button id="clickButton"><img id="clickImg" src="awyen.png" alt="skin"></button>
+      </div>
+
+      <div class="stats">
+        <div><div class="small">Multiplicateur</div><div id="multDisplay">1</div></div>
+        <div><div class="small">Renaissances</div><div id="renaiss">0</div></div>
+        <div><div class="small">Auto-Clicker</div><div id="autoStatus">Non acheté</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Skins</h3>
+      <select id="skinSelect" class="input"></select><br><br>
+      <button id="changeSkin" class="btn secondary">Changer</button>
+      <hr>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        <button class="buySkin btn" data-skin="fuze.png" data-price="1000">Fuze (1000)</button>
+        <button class="buySkin btn" data-skin="unchained.png" data-price="2000">Unchained (2000)</button>
+        <button class="buySkin btn" data-skin="beone.png" data-price="3000">BeOne (3000)</button>
+        <button class="buySkin btn" data-skin="mafiastunt.png" data-price="4000">MafiaStunt (4000)</button>
+        <button class="buySkin btn" data-skin="neverdie.png" data-price="3000">NeverDie (3000)</button>
+      </div>
+    </div>
+
+    <div class="section" id="bonusSection">
+      <h3>Bonus</h3>
+      <button id="buyAuto" data-price="2000" class="btn">Auto-Clicker (2000)</button>
+      <button id="buyBonusX2" data-price="300" class="btn secondary">Bonus x2 (300)</button>
+      <button id="buyBonusX3" data-price="500" class="btn secondary">Bonus x3 (500)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Infos</h3>
+    <div class="small">Auto-Clicker : <span id="autoInfo">Non acheté</span></div>
+    <div class="small">Bonus x2 : <span id="bX2">0</span></div>
+    <div class="small">Bonus x3 : <span id="bX3">0</span></div>
+  </div>
+</div>
+
+<!-- Codes modal -->
+<div id="codesModal" class="leaderboardModal" aria-hidden="true">
+  <h3>Entrer un code</h3>
+  <input id="codeInput" class="input" placeholder="Entrez un code (ex: ACCESTOTALE25)">
+  <div style="margin-top:8px">
+    <button id="useCode" class="btn">Valider</button>
+    <button id="closeCodes" class="btn secondary">Fermer</button>
+  </div>
+  <div class="small" style="margin-top:8px">Le code admin <strong>ACCESTOTALE25</strong> donnera l'accès total aux codes.</div>
+</div>
+
+<!-- Leaderboard modal -->
+<div id="leaderModal" class="leaderboardModal" aria-hidden="true">
+  <h3>Leaderboard - Top 10</h3>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <input id="playerName" class="input" placeholder="Ton pseudo (max 20 chars)">
+    <button id="sendScore" class="btn">Envoyer score</button>
+  </div>
+  <div class="leaderboardList" id="leaderList"></div>
+  <div style="margin-top:8px">
+    <button id="refreshLb" class="btn secondary">Rafraîchir</button>
+    <button id="closeLb" class="btn secondary">Fermer</button>
+  </div>
+  <div class="small" style="margin-top:8px">Les scores sont publics. Ne partage pas d'informations personnelles.</div>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+// Firebase config (provided)
+const firebaseConfig = {
+  apiKey: "AIzaSyCOQ3HbHP-CjfXKNQELajrdP1iVJbFOYbk",
+  authDomain: "clique-sur-un-ur.firebaseapp.com",
+  projectId: "clique-sur-un-ur",
+  storageBucket: "clique-sur-un-ur.firebasestorage.app",
+  messagingSenderId: "700637528898",
+  appId: "1:700637528898:web:8a663a47a59d7f38027edb",
+  measurementId: "G-ZHGP5X8907"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const scoresCol = collection(db, "scores");
+
+// Game state
+let compteur = 0;
+let skins = ["awyen.png"];
+let currentSkin = "awyen.png";
+let bonusX2 = 0, bonusX3 = 0;
+let autoClicker = false;
+let renaissances = 0;
+
+const el = id => document.getElementById(id);
+const colors = ["#ff0048","#00eaff","#7aff00","#ff9a00","#c300ff"];
+
+// UI helpers
+function totalMult(){ return (1 + renaissances + bonusX2*2 + bonusX3*3); }
+function updateUI(){
+  if(el('compteurDisplay')) el('compteurDisplay').textContent = compteur;
+  if(el('multDisplay')) el('multDisplay').textContent = totalMult();
+  if(el('renaiss')) el('renaiss').textContent = renaissances;
+  if(el('autoStatus')) el('autoStatus').textContent = autoClicker? "Activé":"Non acheté";
+  if(el('autoInfo')) el('autoInfo').textContent = autoClicker? "Activé":"Non acheté";
+  if(el('bX2')) el('bX2').textContent = bonusX2;
+  if(el('bX3')) el('bX3').textContent = bonusX3;
+  if(el('clickImg')) el('clickImg').src = currentSkin;
+  let sel = el('skinSelect');
+  if(sel){
+    sel.innerHTML = "";
+    skins.forEach(s=>{
+      let o = document.createElement('option'); 
+      o.value=s; 
+      o.textContent = s.replace('.png',''); 
+      sel.appendChild(o);
+    });
+  }
+}
+
+// Animations
+function spawnFloating(x,y,value){
+  const n = document.createElement('div');
+  n.className = 'floating';
+  n.textContent = '+'+value;
+  n.style.left = (x)+'px';
+  n.style.top = (y)+'px';
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),700);
+}
+
+function spawnParticles(x,y){
+  for(let i=0;i<10;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    const angle = Math.random()*Math.PI*2;
+    const dist = 40 + Math.random()*40;
+    p.style.setProperty('--dx', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--dy', Math.sin(angle)*dist + 'px');
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),700);
+  }
+}
+
+// Persistence keys
+const STORAGE_NAME_KEY = 'csuy_playerName';
+const STORAGE_SCORE_KEY_PREFIX = 'csuy_score_';
+// Check si pseudo existe déjà
+async function isNameTaken(name){
+  if(!name) return false;
+  try{
+    const q = query(scoresCol, where('name','==', name), limit(1));
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }catch(e){
+    console.error('check name error', e);
+    return false;
+  }
+}
+
+function showMain(){
+  const mc = document.getElementById('mainContent');
+  mc.style.visibility = 'visible';
+  mc.style.pointerEvents = 'auto';
+  mc.style.opacity = '1';
+  document.getElementById('disabledCover').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('startModal').classList.add('hidden');
+}
+
+function loadSavedScoreFor(name){
+  if(!name) return 0;
+  const v = localStorage.getItem(STORAGE_SCORE_KEY_PREFIX + name);
+  return v ? parseInt(v,10)||0 : 0;
+}
+
+function saveScoreFor(name, score){
+  if(!name) return;
+  localStorage.setItem(STORAGE_SCORE_KEY_PREFIX + name, String(score));
+}
+
+// --- Boutons de démarrage ---
+el('startBtn')?.addEventListener('click', async ()=>{
+  let name = (el('startName')?.value || '').trim();
+  if(name.length < 4 || name.length > 20){ alert('Pseudo entre 4 et 20 caractères'); return; }
+
+  const taken = await isNameTaken(name);
+  if(taken){ alert('Pseudo déjà utilisé.'); return; }
+
+  localStorage.setItem(STORAGE_NAME_KEY, name);
+  compteur = loadSavedScoreFor(name);
+  el('playerName').value = name;
+  showMain();
+  updateUI();
+});
+
+el('guestBtn')?.addEventListener('click', ()=>{
+  const guest = 'Guest_' + Math.floor(Math.random()*9999);
+  localStorage.setItem(STORAGE_NAME_KEY, guest);
+  compteur = 0;
+  el('playerName').value = guest;
+  showMain();
+  updateUI();
+});
+
+// --- Auto chargement si pseudo enregistré ---
+document.addEventListener('DOMContentLoaded', ()=>{
+  const savedName = localStorage.getItem(STORAGE_NAME_KEY);
+  if(savedName){
+    compteur = loadSavedScoreFor(savedName) || 0;
+    el('playerName').value = savedName;
+    el('startName').value = savedName;
+    showMain();
+  }
+
+  // CLICK du jeu
+  const clickBtn = el('clickButton');
+  const img = el('clickImg');
+
+  clickBtn.addEventListener('click', ()=>{
+    const mult = totalMult();
+    compteur += mult;
+    updateUI();
+
+    img.style.transform = 'scale(1.15)';
+    setTimeout(()=> img.style.transform = '', 120);
+
+    const rect = img.getBoundingClientRect();
+    spawnFloating(rect.left + rect.width/2, rect.top, mult);
+    spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2);
+  });
+
+  // Boutique skins
+  document.querySelectorAll('.buySkin').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const skin = btn.dataset.skin;
+      const price = parseInt(btn.dataset.price);
+      if(skins.includes(skin)) return alert('Déjà acheté !');
+      if(compteur < price) return alert('Pas assez de clics !');
+      compteur -= price;
+      skins.push(skin);
+      alert('Skin débloqué !');
+      updateUI();
+    });
+  });
+
+  el('changeSkin')?.addEventListener('click', ()=>{
+    const sel = el('skinSelect');
+    currentSkin = sel.value;
+    updateUI();
+  });
+
+  // Bonus
+  el('buyAuto')?.addEventListener('click', ()=>{
+    if(autoClicker) return alert('Déjà acheté !');
+    const price = 2000;
+    if(compteur < price) return alert('Pas assez !');
+    compteur -= price;
+    autoClicker = true;
+    alert('Auto-clicker activé !');
+    updateUI();
+  });
+
+  el('buyBonusX2')?.addEventListener('click', ()=>{
+    if(compteur < 300) return alert('Pas assez !');
+    compteur -= 300;
+    bonusX2++;
+    updateUI();
+  });
+
+  el('buyBonusX3')?.addEventListener('click', ()=>{
+    if(compteur < 500) return alert('Pas assez !');
+    compteur -= 500;
+    bonusX3++;
+    updateUI();
+  });
+
+  // Auto-click interval
+  setInterval(()=>{
+    if(autoClicker){
+      compteur += totalMult();
+      updateUI();
+    }
+  }, 2000);
+
+  // Codes
+  el('codesBtn')?.addEventListener('click', ()=> el('codesModal').classList.add('show'));
+  el('closeCodes')?.addEventListener('click', ()=> el('codesModal').classList.remove('show'));
+
+  el('useCode')?.addEventListener('click', ()=>{
+    const val = el('codeInput').value.trim().toUpperCase();
+    if(!val) return alert('Entrer un code');
+
+    // Code admin
+    if(val === 'ACCESTOTALE25'){
+      compteur += 999999;
+      autoClicker = true;
+      bonusX2 += 10;
+      bonusX3 += 10;
+      skins.push(...["fuze.png","unchained.png","beone.png","mafiastunt.png","neverdie.png"]);
+      alert('Accès total activé !');
+      updateUI();
+      el('codesModal').classList.remove('show');
+      return;
+    }
+
+    const codes = {
+      "CLICK500": ()=> compteur += 500,
+      "CLICK1000": ()=> compteur += 1000,
+      "MULTI3": ()=> bonusX3++
+    };
+
+    if(codes[val]){
+      codes[val]();
+      alert("Code validé !");
+      updateUI();
+      el('codesModal').classList.remove('show');
+    } else {
+      alert("Code invalide");
+    }
+  });
+
+  // Leaderboard
+  el('leaderBtn')?.addEventListener('click', ()=>{
+    el('leaderModal').classList.add('show');
+    fetchLeaderboard();
+  });
+
+  el('closeLb')?.addEventListener('click', ()=>{
+    el('leaderModal').classList.remove('show');
+  });
+
+  el('refreshLb')?.addEventListener('click', ()=>{
+    fetchLeaderboard();
+  });
+
+  el('sendScore')?.addEventListener('click', ()=>{
+    const name = el('playerName').value || 'Anonyme';
+    sendScoreToFirestore(name, compteur);
+  });
+
+  updateUI();
+});
+
+// Envoyer score
+async function sendScoreToFirestore(name, score){
+  try{
+    const capped = Math.min(score, 99999999);
+    await addDoc(scoresCol, {
+      name: name.slice(0,20),
+      score: capped,
+      createdAt: serverTimestamp()
+    });
+    alert("Score envoyé !");
+    fetchLeaderboard();
+  }catch(err){
+    alert("Erreur envoi score");
+    console.error(err);
+  }
+}
+
+// Charger leaderboard
+async function fetchLeaderboard(){
+  try{
+    el('leaderList').innerHTML = "<div>Chargement...</div>";
+    const q = query(scoresCol, orderBy("score","desc"), limit(10));
+    const snap = await getDocs(q);
+
+    el('leaderList').innerHTML = "";
+    snap.forEach((doc,i)=>{
+      const d = doc.data();
+      const row = document.createElement('div');
+      row.className = "row";
+      row.innerHTML = `<div>#${i+1} ${d.name}</div><div>${d.score}</div>`;
+      el('leaderList').appendChild(row);
+    });
+  }catch(e){
+    el('leaderList').innerHTML = "Erreur.";
+  }
+}
+</script>
+
+</body>
+</html>
+
