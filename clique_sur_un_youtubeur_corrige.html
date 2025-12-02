@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Clique Sur Un Youtubeur — Final</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+:root{--accent:#00eaff;--accent2:#ff8c00}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter, Arial, sans-serif;background:linear-gradient(180deg,#071028,#050814);color:#e6eef6;display:flex;justify-content:center;padding:28px}
+.container{width:980px;max-width:98%}
+.header{display:flex;align-items:center;justify-content:space-between}
+h1{color:var(--accent);margin:0 0 8px 0}
+.card{background:rgba(10,12,20,0.85);padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.6);margin-top:14px}
+#clickButton{background:linear-gradient(180deg,var(--accent2),#ff7a00);border-radius:14px;padding:10px;border:none;cursor:pointer}
+#clickButton img{width:160px;display:block;transition:transform .12s}
+.small{font-size:13px;color:#afc6d9}
+.stats{display:flex;gap:18px;margin-top:12px}
+.section{margin-top:14px}
+.btn{background:linear-gradient(180deg,var(--accent2),#ff7a00);border:none;padding:8px 12px;border-radius:8px;color:#fff;cursor:pointer;font-weight:700}
+.btn.secondary{background:linear-gradient(180deg,#4b5563,#39434b)}
+.input{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+.leaderboardModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:999;width:90%;max-width:560px;display:none;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+.leaderboardModal.show{display:block}
+.leaderboardList{max-height:320px;overflow:auto;margin-top:10px}
+.row{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.floating{position:fixed;font-weight:800;color:var(--accent);pointer-events:none;animation:floatUp 0.7s ease-out forwards;z-index:1200}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+.particle{position:fixed;width:6px;height:6px;border-radius:50%;animation:explode .6s ease-out forwards;z-index:1100}
+@keyframes explode{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+#startModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:1000;width:90%;max-width:420px;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+#overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:900;display:block}
+.hidden{display:none}
+.note{font-size:13px;color:#9fb3c9;margin-top:8px}
+.disabledCover{position:fixed;left:0;top:0;right:0;bottom:0;z-index:800;background:transparent;pointer-events:auto}
+</style>
+</head>
+<body>
+CONTENU ORIGINAL INSÉRÉ ICI…
+</body>
+</html>
