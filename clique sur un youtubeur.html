@@ -1,0 +1,319 @@
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where,
+  serverTimestamp, onSnapshot
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+// ==============================
+// 🔥 CONFIG FIREBASE
+// ==============================
+const firebaseConfig = {
+  apiKey: "AIzaSyCOQ3HbHP-CjfXKNQELajrdP1iVJbFOYbk",
+  authDomain: "clique-sur-un-ur.firebaseapp.com",
+  projectId: "clique-sur-un-ur",
+  storageBucket: "clique-sur-un-ur.firebasestorage.app",
+  messagingSenderId: "700637528898",
+  appId: "1:700637528898:web:8a663a47a59d7f38027edb",
+  measurementId: "G-ZHGP5X8907"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const scoresCol = collection(db, "scores");
+
+// ==============================
+// 🔥 VARIABLES DU JEU
+// ==============================
+let compteur = 0;
+let skins = ["awyen.png"];
+let currentSkin = "awyen.png";
+let bonusX2 = 0, bonusX3 = 0;
+let autoClicker = false;
+let renaissances = 0;
+
+const el = id => document.getElementById(id);
+const colors = ["#ff0048","#00eaff","#7aff00","#ff9a00","#c300ff"];
+
+// ==============================
+// 🔥 UI + MULTIPLICATEUR
+// ==============================
+function totalMult(){ 
+  return 1 + renaissances + bonusX2*2 + bonusX3*3; 
+}
+
+function updateUI(){
+  el('compteurDisplay').textContent = compteur;
+  el('multDisplay').textContent = totalMult();
+  el('renaiss').textContent = renaissances;
+  el('autoStatus').textContent = autoClicker ? "Activé" : "Non acheté";
+  el('autoInfo').textContent = autoClicker ? "Activé" : "Non acheté";
+  el('bX2').textContent = bonusX2;
+  el('bX3').textContent = bonusX3;
+  el('clickImg').src = currentSkin;
+
+  const sel = el('skinSelect');
+  sel.innerHTML = "";
+  skins.forEach(s=>{
+    const o = document.createElement("option");
+    o.value = s;
+    o.textContent = s.replace(".png","");
+    sel.appendChild(o);
+  });
+}
+
+// ==============================
+// 🔥 ANIMATIONS
+// ==============================
+function spawnFloating(x,y,value){
+  const n = document.createElement("div");
+  n.className = "floating";
+  n.textContent = "+" + value;
+  n.style.left = x + "px";
+  n.style.top = y + "px";
+  document.body.appendChild(n);
+  setTimeout(()=>n.remove(),700);
+}
+
+function spawnParticles(x,y){
+  for(let i=0;i<10;i++){
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.left = x+"px";
+    p.style.top = y+"px";
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    const angle = Math.random()*Math.PI*2;
+    const dist = 40 + Math.random()*40;
+    p.style.setProperty("--dx", Math.cos(angle)*dist+"px");
+    p.style.setProperty("--dy", Math.sin(angle)*dist+"px");
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),700);
+  }
+}
+
+// ==============================
+// 🔥 PSEUDO + SAUVEGARDE
+// ==============================
+const STORAGE_NAME_KEY = "csuy_playerName";
+const STORAGE_SCORE_KEY_PREFIX = "csuy_score_";
+
+async function isNameTaken(name){
+  const q = query(scoresCol, where("name","==",name), limit(1));
+  const snap = await getDocs(q);
+  return !snap.empty;
+}
+
+function loadSavedScoreFor(name){
+  const v = localStorage.getItem(STORAGE_SCORE_KEY_PREFIX + name);
+  return v ? parseInt(v,10) : 0;
+}
+
+function saveScoreFor(name,score){
+  localStorage.setItem(STORAGE_SCORE_KEY_PREFIX + name, String(score));
+}
+
+function showMain(){
+  const mc = el('mainContent');
+  mc.style.visibility = "visible";
+  mc.style.pointerEvents = "auto";
+  mc.style.opacity = "1";
+  el('startModal').classList.add("hidden");
+  el('overlay').style.display = "none";
+  el('disabledCover').style.display = "none";
+}
+
+// ==============================
+// 🔥 LANCEMENT DU JEU
+// ==============================
+el("startBtn").addEventListener("click", async ()=>{
+  let name = el("startName").value.trim();
+  if(name.length < 4) return alert("Pseudo trop court");
+  if(await isNameTaken(name)) return alert("Ce pseudo est déjà pris");
+
+  localStorage.setItem(STORAGE_NAME_KEY,name);
+  compteur = loadSavedScoreFor(name);
+  el("playerName").value = name;
+
+  showMain();
+  updateUI();
+});
+
+el("guestBtn").addEventListener("click", ()=>{
+  const guest = "Guest_" + Math.floor(Math.random()*9999);
+  localStorage.setItem(STORAGE_NAME_KEY,guest);
+  compteur = 0;
+  el("playerName").value = guest;
+
+  showMain();
+  updateUI();
+});
+
+// Reconnexion auto
+document.addEventListener("DOMContentLoaded", ()=>{
+  const saved = localStorage.getItem(STORAGE_NAME_KEY);
+  if(saved){
+    compteur = loadSavedScoreFor(saved);
+    el("playerName").value = saved;
+    el("startName").value = saved;
+    showMain();
+  }
+});
+
+// ==============================
+// 🔥 CLICK DU JEU
+// ==============================
+el("clickButton").addEventListener("click", ()=>{
+  const mult = totalMult();
+  compteur += mult;
+  updateUI();
+
+  const img = el("clickImg");
+  img.style.transform = "scale(1.15)";
+  setTimeout(()=> img.style.transform = "",120);
+
+  const rect = img.getBoundingClientRect();
+  spawnFloating(rect.left+rect.width/2, rect.top, mult);
+  spawnParticles(rect.left+rect.width/2, rect.top+rect.height/2);
+});
+
+// ==============================
+// 🔥 BOUTIQUE
+// ==============================
+document.querySelectorAll(".buySkin").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const skin = btn.dataset.skin;
+    const price = parseInt(btn.dataset.price);
+
+    if(skins.includes(skin)) return alert("Déjà acheté !");
+    if(compteur < price) return alert("Pas assez de clics !");
+
+    compteur -= price;
+    skins.push(skin);
+    updateUI();
+    alert("Skin débloqué !");
+  });
+});
+
+el("changeSkin").addEventListener("click", ()=>{
+  currentSkin = el("skinSelect").value;
+  updateUI();
+});
+
+el("buyAuto").addEventListener("click", ()=>{
+  if(autoClicker) return alert("Déjà acheté !");
+  if(compteur < 2000) return alert("Pas assez !");
+  compteur -= 2000;
+  autoClicker = true;
+  updateUI();
+});
+
+el("buyBonusX2").addEventListener("click", ()=>{
+  if(compteur < 300) return alert("Pas assez !");
+  compteur -= 300;
+  bonusX2++;
+  updateUI();
+});
+
+el("buyBonusX3").addEventListener("click", ()=>{
+  if(compteur < 500) return alert("Pas assez !");
+  compteur -= 500;
+  bonusX3++;
+  updateUI();
+});
+
+// AUTO CLICKER
+setInterval(()=>{
+  if(autoClicker){
+    compteur += totalMult();
+    updateUI();
+  }
+},2000);
+
+// ==============================
+// 🔥 CODES
+// ==============================
+el("codesBtn").addEventListener("click", ()=> el("codesModal").classList.add("show"));
+el("closeCodes").addEventListener("click", ()=> el("codesModal").classList.remove("show"));
+
+el("useCode").addEventListener("click", ()=>{
+  const val = el("codeInput").value.trim().toUpperCase();
+  if(!val) return;
+
+  if(val === "ACCESTOTALE25"){
+    compteur += 999999;
+    autoClicker = true;
+    bonusX2 += 10;
+    bonusX3 += 10;
+    skins.push("fuze.png","unchained.png","beone.png","mafiastunt.png","neverdie.png");
+    updateUI();
+    alert("Accès admin activé !");
+    return el("codesModal").classList.remove("show");
+  }
+
+  const codes = {
+    "CLICK500": ()=> compteur+=500,
+    "CLICK1000": ()=> compteur+=1000,
+    "MULTI3": ()=> bonusX3++
+  };
+
+  if(codes[val]){
+    codes[val]();
+    updateUI();
+    alert("Code validé !");
+    el("codesModal").classList.remove("show");
+  } else {
+    alert("Code invalide");
+  }
+});
+
+// ==============================
+// 🔥 LEADERBOARD EN TEMPS RÉEL
+// ==============================
+function fetchLeaderboardRealtime(){
+  const q = query(scoresCol, orderBy("score","desc"), limit(10));
+
+  onSnapshot(q, (snap)=>{
+    const list = el("leaderList");
+    list.innerHTML = "";
+
+    let index = 1;
+    snap.forEach(doc=>{
+      const d = doc.data();
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `<div>#${index} ${d.name}</div><div>${d.score}</div>`;
+      list.appendChild(row);
+      index++;
+    });
+
+    if(index === 1){
+      list.innerHTML = "<div>Aucun score</div>";
+    }
+  });
+}
+
+el("leaderBtn").addEventListener("click", ()=>{
+  el("leaderModal").classList.add("show");
+  fetchLeaderboardRealtime(); // 🔥 temps réel
+});
+
+el("closeLb").addEventListener("click", ()=> el("leaderModal").classList.remove("show"));
+
+el("sendScore").addEventListener("click", ()=>{
+  const name = el("playerName").value || "Anonyme";
+  sendScoreToFirestore(name, compteur);
+});
+
+// ==============================
+// 🔥 ENVOI SCORE FIRESTORE
+// ==============================
+async function sendScoreToFirestore(name, score){
+  const capped = Math.min(score, 99999999);
+  await addDoc(scoresCol,{
+    name:name.slice(0,20),
+    score:capped,
+    createdAt:serverTimestamp()
+  });
+  alert("Score envoyé !");
+}
+</script>
