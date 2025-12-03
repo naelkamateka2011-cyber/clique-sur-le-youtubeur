@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Clique Sur Un Youtubeur — FIXED COMPLET</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+:root{--accent:#00eaff;--accent2:#ff8c00}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0}
+body{
+  background: radial-gradient(ellipse at top left, rgba(0,30,60,0.9), rgba(5,8,15,1) 60%);
+  color:#e6eef6;
+  font-family:Inter, system-ui, Arial;
+  overflow-x:hidden;
+}
+#overlay{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:900;display:block}
+#startModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:1000;width:90%;max-width:420px;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+.hidden{display:none}
+.note{font-size:13px;color:#9fb3c9;margin-top:8px}
+.disabledCover{position:fixed;left:0;top:0;right:0;bottom:0;z-index:800;background:transparent;pointer-events:auto}
+
+.container{max-width:980px;margin:40px auto;display:grid;grid-template-columns:1fr 340px;gap:18px;position:relative;z-index:2;padding:18px}
+.card{background: rgba(10,12,20,0.85); padding:18px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.6); backdrop-filter: blur(6px) saturate(120%);}
+h1{color:var(--accent); margin:0}
+button{cursor:pointer;border:none;padding:8px 12px;border-radius:8px;background:linear-gradient(180deg,var(--accent2),#ff7a00);color:white;font-weight:700;}
+button.secondary{background:linear-gradient(180deg,#4b5563,#39434b)}
+.section{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;margin-top:14px;}
+#clickButton img{width:160px; display:block}
+.leaderboardModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#07122a;padding:18px;border-radius:12px;z-index:999;width:90%;max-width:560px;display:none;box-shadow:0 10px 50px rgba(0,0,0,0.6)}
+.leaderboardModal.show{display:block}
+.leaderboardList{max-height:320px;overflow:auto;margin-top:10px}
+.row{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.floating{position:fixed;font-weight:800;color:var(--accent);pointer-events:none;animation:floatUp 0.7s ease-out forwards;z-index:1200}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+.particle{position:fixed;width:6px;height:6px;border-radius:50%;animation:explode .6s ease-out forwards;z-index:1100}
+@keyframes explode{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+.input{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+.small{font-size:13px;color:#afc6d9}
+</style>
+</head>
+<body>
+<div id="overlay"></div>
+
+<!-- START MODAL FIXED -->
+<div id="startModal">
+  <h3>Bienvenue — Choisis ton pseudo</h3>
+  <input id="startName" class="input" placeholder="Pseudo (4-20 caractères)">
+  <div style="margin-top:8px;display:flex;gap:8px">
+    <button id="startBtn">Commencer</button>
+    <button id="guestBtn" class="secondary">Invité</button>
+  </div>
+  <div class="note">Pseudo unique.</div>
+</div>
+
+<div id="disabledCover" class="disabledCover"></div>
+
+<!-- MAIN -->
+<div class="container" id="mainContent" style="visibility:hidden;pointer-events:none;opacity:0.01">
+  <div class="card">
+    <div style="text-align:center;">
+      <h1>Clique sur un youtubeur</h1>
+      <h2>Clics : <span id="compteurDisplay">0</span></h2>
+      <button id="goBonusShop" class="secondary">Boutique Bonus</button><br><br>
+      <button id="clickButton"><img id="clickImg" src="awyen.png"></button>
+    </div>
+
+    <div class="section">
+      <h3>Skins</h3>
+      <select id="skinSelect"></select><br><br>
+      <button id="changeSkin">Changer</button>
+      <hr>
+      <button class="buySkin" data-skin="fuze.png" data-price="1000">Fuze (1000)</button><br><br>
+      <button class="buySkin" data-skin="unchained.png" data-price="2000">Unchained (2000)</button><br><br>
+    </div>
+
+    <div class="section" id="bonusSection">
+      <h3>Bonus</h3>
+      <button id="buyAuto" data-price="2000">Auto-Clicker (2000)</button><br><br>
+      <button id="buyBonusX2" data-price="300" class="secondary">Bonus x2 (300)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section">
+      <h3>Infos</h3>
+      <div>Auto-Clicker : <span id="autoStatus">Non acheté</span></div>
+      <div>Bonus x2 : <span id="bonusX2">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// BASIC FUNCTIONAL FIXED
+let compteur=0;
+let skins=["awyen.png"];
+let currentSkin="awyen.png";
+let bonusX2=0;
+let autoClicker=false;
+
+function totalMult(){ return 1 + bonusX2*2; }
+
+function updateUI(){
+  document.getElementById("compteurDisplay").textContent = compteur;
+  document.getElementById("autoStatus").textContent = autoClicker ? "Activé":"Non acheté";
+  document.getElementById("bonusX2").textContent = bonusX2;
+  document.getElementById("clickImg").src = currentSkin;
+
+  let sel = document.getElementById("skinSelect");
+  sel.innerHTML="";
+  skins.forEach(s=>{
+      let o=document.createElement("option");
+      o.value=s;
+      o.textContent=s.replace(".png","");
+      sel.appendChild(o);
+  });
+}
+
+// CLICK FIXED
+document.getElementById("clickButton").onclick = (ev)=>{
+  const mult = totalMult();
+  compteur += mult;
+  updateUI();
+};
+
+// Skin buying
+document.querySelectorAll(".buySkin").forEach(btn=>{
+  btn.onclick=()=>{
+    let skin=btn.dataset.skin;
+    let price=parseInt(btn.dataset.price);
+    if(skins.includes(skin)) return alert("Déjà acheté !");
+    if(compteur<price) return alert("Pas assez !");
+    compteur-=price;
+    skins.push(skin);
+    updateUI();
+  };
+});
+
+// Skin change
+document.getElementById("changeSkin").onclick=()=>{
+  currentSkin=document.getElementById("skinSelect").value;
+  updateUI();
+};
+
+// Auto-clicker
+document.getElementById("buyAuto").onclick=()=>{
+  let cost=2000;
+  if(autoClicker) return alert("Déjà acheté !");
+  if(compteur<cost) return alert("Pas assez !");
+  compteur-=cost;
+  autoClicker=true;
+  updateUI();
+};
+
+setInterval(()=>{
+  if(autoClicker){
+    compteur+=totalMult();
+    updateUI();
+  }
+},2000);
+
+// START MODAL FIX
+document.getElementById("startBtn").onclick=()=>{
+  let name = document.getElementById("startName").value.trim();
+  if(name.length<4 || name.length>20){ alert("Pseudo invalide"); return;}
+  document.getElementById("startModal").classList.add("hidden");
+  document.getElementById("overlay").style.display="none";
+  document.getElementById("disabledCover").style.display="none";
+  let main = document.getElementById("mainContent");
+  main.style.visibility="visible";
+  main.style.pointerEvents="auto";
+  main.style.opacity="1";
+};
+
+document.getElementById("guestBtn").onclick=()=>{
+  document.getElementById("startModal").classList.add("hidden");
+  document.getElementById("overlay").style.display="none";
+  document.getElementById("disabledCover").style.display="none";
+  let main = document.getElementById("mainContent");
+  main.style.visibility="visible";
+  main.style.pointerEvents="auto";
+  main.style.opacity="1";
+};
+
+updateUI();
+</script>
+</body>
+</html>
